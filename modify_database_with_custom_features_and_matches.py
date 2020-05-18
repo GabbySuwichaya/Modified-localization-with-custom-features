@@ -67,7 +67,8 @@ def import_features(images, paths, args):
     for image_name, image_id in tqdm(images.items(), total=len(images.items())):
         features_path = os.path.join(paths.feat_path, '%s.%s' % (image_name, args.method_name))
         
-        keypoints = np.load(features_path)['keypoints']
+        keypoints = np.load(features_path)['keypoints'] 
+
         n_keypoints = keypoints.shape[0]
         
         # Keep only x, y coordinates.
@@ -177,6 +178,8 @@ if __name__ == "__main__":
     parser.add_argument('--image_path', required=True, help='Name of the image directory relative to dataset_path')
     parser.add_argument('--match_list', required=True, help='Name of the text file containing image pairs to be matched, relative to dataset_path')
     parser.add_argument('--matching_only', type=bool, default=False, help='Only performs feature matching without creating a new database or importing features')
+    parser.add_argument('--matching_ratio', type=float, required=False, help='Specify matching ratio for distance matching.')
+     
     args = parser.parse_args()
 
     ## Torch settings for the matcher.

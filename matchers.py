@@ -14,7 +14,7 @@ def mutual_nn_matcher(descriptors1, descriptors2):
 
 
 # Symmetric Lowe's ratio test matcher for L2 normalized descriptors.
-def ratio_matcher(descriptors1, descriptors2, ratio=0.8):
+def ratio_matcher(descriptors1, descriptors2, ratio=0.95):
     device = descriptors1.device
     sim = descriptors1 @ descriptors2.t()
 
