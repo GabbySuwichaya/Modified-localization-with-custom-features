@@ -184,7 +184,7 @@ def Check_camera_intrinsics(cameras, camera_parameters, cameras_database):
 
         if "db" in image_name : 
             if not((camera_param_txt[2:] == camera_param_database).all()):   
-                print("Database IMG: %s with different INTRINSICS PARAM" % image_name)
+                print("Database IMG: %s with different INTRINSIC PARAM" % image_name)
                 db_ = {} 
                 db_["param_txt"] = camera_param_txt
                 db_["param_database"] = np.concatenate((cameras_database[camera_id]['size'],cameras_database[camera_id]['params']))
@@ -193,15 +193,15 @@ def Check_camera_intrinsics(cameras, camera_parameters, cameras_database):
 
         elif "query" in image_name : 
             if not((camera_param_txt[2:] == camera_param_database).all()):   
-                print("Query IMG: %s with different INTRINSICS PARAM" % image_name)
+                print("Query IMG: %s with different INTRINSIC PARAM" % image_name)
                 query_ = {} 
                 query_["param_txt"] = camera_param_txt
                 query_["param_database"] = np.concatenate((cameras_database[camera_id]['size'],cameras_database[camera_id]['params']))
                 query_not_the_same[image_name] = query_ 
                 num_query = num_query +1
 
-    print("Database IMG:  #%5d images with different INTRINSICS PARAM from database_intrinsics.txt" %  num_db)
-    print("Query IMG:     #%5d images with different INTRINSICS PARAM from day/night_time_queries_with_intrinsics.txt" %  num_query)
+    print("Database IMG:  #%5d images with different INTRINSIC PARAM from database_intrinsics.txt" %  num_db)
+    print("Query IMG:     #%5d images with different INTRINSIC PARAM from day/night_time_queries_with_intrinsics.txt" %  num_query)
     return query_not_the_same
 
  
