@@ -117,13 +117,14 @@ def preprocess_reference_model(paths, args):
 
         camera = Camera()
         camera.set_intrinsics(camera_model=camera_model, intrinsics=intrinsics)
-
+ 
         camera_parameters[image_name] = camera
  
     with open(os.path.join(paths.reference_model_query_path, 'night_time_queries_with_intrinsics.txt')) as f_night_query:
         raw_night_intrinsics_query = f_night_query.readlines() 
 
     for intrinsics in raw_night_intrinsics_query:
+
         intrinsics = intrinsics.strip('\n').split(' ')
         
         image_name = intrinsics[0]
@@ -175,12 +176,15 @@ def Check_camera_intrinsics(cameras, camera_parameters, cameras_database):
         try:
             camera_param_txt = camera_parameters[image_name].intrinsics
         except:
-            print("image name: %s not exist in database_intrinsics.txt/day-night_time_queries_with_intrinsics.txt" % image_name)
-
+            if "db" in image_name:
+                print("Database image name: %s not exist in database_intrinsics.txt" % image_name)
+            elif "query" in image_name:
+                print("Query image name   : %s not exist in day-night_time_queries_with_intrinsics.txt" % image_name)
+        
         try:
             camera_param_database = cameras_database[camera_id]['params']
         except:
-            print("image name: %s not exist in database.db" % image_name)
+            print("Image: %s not exist in database.db" % image_name)
 
         if "db" in image_name : 
             if not((camera_param_txt[2:] == camera_param_database).all()):   
@@ -199,7 +203,7 @@ def Check_camera_intrinsics(cameras, camera_parameters, cameras_database):
                 query_["param_database"] = np.concatenate((cameras_database[camera_id]['size'],cameras_database[camera_id]['params']))
                 query_not_the_same[image_name] = query_ 
                 num_query = num_query +1
-
+    print("Summary....")
     print("Database IMG:  #%5d images with different INTRINSIC PARAM from database_intrinsics.txt" %  num_db)
     print("Query IMG:     #%5d images with different INTRINSIC PARAM from day/night_time_queries_with_intrinsics.txt" %  num_query)
     return query_not_the_same
