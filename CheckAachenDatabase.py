@@ -56,7 +56,7 @@ def recover_database_images_and_ids(paths, args):
     return images, cameras
 
 
-def get_camera_intrinsics_database(paths, args ):
+def get_camera_intrinsics_from_databasefile(paths, args ):
     # Connect to the database.
     connection = sqlite3.connect(paths.database_path)
     cursor = connection.cursor()
@@ -168,113 +168,43 @@ def preprocess_reference_model(paths, args):
 def Check_camera_intrinsics(cameras, camera_parameters, cameras_database):
     query_not_the_same = {}
     db_not_the_same    = {}
+    num_db = 0
+    num_query = 0
     for image_name in images.keys(): 
         camera_id        = cameras[image_name] 
         try:
             camera_param_txt = camera_parameters[image_name].intrinsics
         except:
-            print("image name: %s not exist in txt" % image_name)
+            print("image name: %s not exist in database_intrinsics.txt/day-night_time_queries_with_intrinsics.txt" % image_name)
 
         try:
             camera_param_database = cameras_database[camera_id]['params']
         except:
-            print("image name: %s not exist in database" % image_name)
+            print("image name: %s not exist in database.db" % image_name)
 
         if "db" in image_name : 
             if not((camera_param_txt[2:] == camera_param_database).all()):   
-                print("INTRINSICS PARAM not the same %s" % image_name)
+                print("Database IMG: %s with different INTRINSICS PARAM" % image_name)
                 db_ = {} 
                 db_["param_txt"] = camera_param_txt
                 db_["param_database"] = np.concatenate((cameras_database[camera_id]['size'],cameras_database[camera_id]['params']))
                 db_not_the_same[image_name] = db_ 
+                num_db = num_db +1
 
         elif "query" in image_name : 
             if not((camera_param_txt[2:] == camera_param_database).all()):   
-                print("INTRINSICS PARAM not the same %s" % image_name)
+                print("Query IMG: %s with different INTRINSICS PARAM" % image_name)
                 query_ = {} 
                 query_["param_txt"] = camera_param_txt
                 query_["param_database"] = np.concatenate((cameras_database[camera_id]['size'],cameras_database[camera_id]['params']))
                 query_not_the_same[image_name] = query_ 
+                num_query = num_query +1
 
+    print("Database IMG:  #%5d images with different INTRINSICS PARAM from database_intrinsics.txt" %  num_db)
+    print("Query IMG:     #%5d images with different INTRINSICS PARAM from day/night_time_queries_with_intrinsics.txt" %  num_query)
     return query_not_the_same
 
-
-def Update_camera_params( images, cameras, camera_parameters, paths, args):
-    # Connect to the database.
-    connection = sqlite3.connect(paths.database_path)
-    cursor = connection.cursor() 
-    cursor.execute("DELETE FROM cameras;")
-    connection.commit()
-    
-    # Recover database images and ids. 
-    
-    for key in images.keys():  
-        
-        if camera_parameters.get(key, -1) == -1:
-            print("Skip camera intrinsics parameters setting for %s" % key)
-            continue
-        camera_size = camera_parameters[key].intrinsics[:2]
-        param_array = np.asarray(camera_parameters[key].intrinsics[2:], np.float64)  
-
-        model = 2
-        prior_focal_length = camera_parameters[key].intrinsics[-1]
-        
-        cursor.execute("INSERT INTO cameras(camera_id, model, width, height, params, prior_focal_length) VALUES(?, ?, ?, ?, ?, ?);", (cameras[key], model, camera_size[0], camera_size[1], array_to_blob(param_array), prior_focal_length))
-  
-        connection.commit()
-         
-    # Close the connection to the database.
-    cursor.close()
-    connection.close()   
-
-
-def Update_database_images_and_ids( images, cameras, camera_parameters, paths, args):
-    
-    print("Update_database_images_and_ids ..... ")
-    
-    # Connect to the database.
-    connection = sqlite3.connect(paths.database_path)
-    cursor = connection.cursor() 
-    cursor.execute("DELETE FROM images;")
-    connection.commit()
-    new_cameras_ids = []
-    new_image_names = []
-    # Recover database images and ids. 
-    for key, value in images.items():
-
-
-        images_name_path = key  
-        images_id = value 
-        camera_id = cameras[key]
-
-        if not("db/" in key):
-               
-            if camera_parameters.get(key, -1) == -1:
-                print("[Warning] Skip camera extrinsic parameters setting for %s" % key)
-                continue
-            
-            print("Query images : %s insert 0" % (key))
-            prior_q = np.zeros(4)
-            prior_t = np.zeros(3) 
  
-        else: 
-            prior_q   = camera_parameters[key].qvec
-            prior_t   = camera_parameters[key].t  
-            
-        new_cameras_ids.append(camera_id)
-        new_image_names.append(images_name_path)
-         
-        cursor.execute("INSERT INTO images(image_id, name, camera_id, prior_qw, prior_qx, prior_qy, prior_qz, prior_tx, prior_ty, prior_tz ) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?);", (images_id, images_name_path, camera_id, prior_q[0], prior_q[1], prior_q[2],
-             prior_q[3], prior_t[0], prior_t[1], prior_t[2]))  
-        connection.commit()
-         
-    # Close the connection to the database.
-    cursor.close()
-    connection.close() 
-    
-    return new_image_names, new_cameras_ids
-
-
 
 if __name__ == "__main__":    
     parser = argparse.ArgumentParser()
@@ -290,23 +220,17 @@ if __name__ == "__main__":
     # Create the extra paths.
     paths = types.SimpleNamespace()
     paths.dummy_database_path = os.path.join(args.dataset_path, 'database.db')
-    paths.database_path = os.path.join(args.dataset_path, args.method_name + '.db')
-    paths.image_path    = os.path.join(args.dataset_path, 'images', 'images_upright')
+    paths.database_path = os.path.join(args.dataset_path, args.method_name + '.db') 
     paths.features_path = os.path.join(args.dataset_path, args.method_name)
     paths.reference_model_path       = os.path.join(args.dataset_path, '3D-models')
     paths.reference_model_query_path = os.path.join(args.dataset_path, 'queries')
  
     paths.empty_model_path = os.path.join(args.dataset_path, 'sparse-%s-empty' % args.method_name) 
      
-    # Create a copy of the dummy database.
-    if os.path.exists(paths.database_path):
-        raise FileExistsError('The database file already exists for method %s.' % args.method_name)
-    shutil.copyfile(paths.dummy_database_path, paths.database_path)
+    # Create a copy of the dummy database. 
     
     # Reconstruction pipeline. 
     images, cameras   = recover_database_images_and_ids(paths, args)
     camera_parameters = preprocess_reference_model(paths, args)
-    cameras_database  = get_camera_intrinsics_database(paths, args )
-    query_not_the_same = Check_camera_intrinsics(cameras, camera_parameters, cameras_database)
-    #Update_camera_params(images, cameras, camera_parameters, paths, args) 
-    #Update_database_images_and_ids(images, cameras, camera_parameters, paths, args) 
+    cameras_database  = get_camera_intrinsics_from_databasefile(paths, args )
+    query_not_the_same = Check_camera_intrinsics(cameras, camera_parameters, cameras_database) 
